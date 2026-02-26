@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crypto Tablero Pro</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background-color: #0a0a0a; 
+            color: white; 
+            margin: 0; 
+            padding: 20px; 
+        }
+        h1 { color: #f2a900; text-align: center; font-size: 1.5rem; }
+        
+        #tablero { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); 
+            gap: 15px; 
+            margin-top: 20px;
+        }
+
+        .card { 
+            background: #161616; 
+            border-radius: 15px; 
+            padding: 15px; 
+            border: 1px solid #333; 
+            text-align: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+
+        .moneda-nombre { font-size: 0.8rem; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+        .precio { font-size: 1.2rem; font-weight: bold; margin: 8px 0; color: #fff; }
+        .cambio { font-size: 0.9rem; font-weight: bold; }
+
+        /* Colores de tendencia */
+        .sube { border-bottom: 4px solid #00ff00; }
+        .baja { border-bottom: 4px solid #ff4444; }
+        
+        .loading { text-align: center; color: #f2a900; margin-top: 50px; }
+    </style>
+</head>
+<body>
+
+    <h1>🚀 Mi Panel Crypto</h1>
+    
+    <div id="tablero">
+        <div class="loading">Conectando con el mercado...</div>
+    </div>
+
+    <script>
+        // Lista de monedas que queremos mostrar
+        const monedas = ['bitcoin', 'ethereum', 'solana', 'binancecoin', 'cardano', 'dogecoin'];
+
+        async function obtenerPrecios() {
+            try {
+                const ids = monedas.join(',');
+                const respuesta = await axios.get(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`);
+                const datos = respuesta.data;
+                
+                const tablero = document.getElementById('tablero');
+                tablero.innerHTML = ''; // Limpiar el mensaje de carga
+
+                monedas.forEach(id => {
+                    const precio = datos[id].usd;
+                    const cambio24h = datos[id].usd_24h_change || 0;
+                    const esPositivo = cambio24h >= 0;
+                    
+                    // Crear la tarjeta visualmente
+                    tablero.innerHTML += `
+                        <div class="card ${esPositivo ? 'sube' : 'baja'}">
+                            <div class="moneda-nombre">${id}</div>
+                            <div class="precio">$${precio.toLocaleString()}</div>
+                            <div class="cambio" style="color: ${esPositivo ? '#00ff00' : '#ff4444'}">
+                                ${esPositivo ? '▲' : '▼'} ${cambio24h.toFixed(2)}%
+                            </div>
+                        </div>
+                    `;
+                });
+            } catch (error) {
+                document.getElementById('tablero').innerHTML = '<div style="color:red">Error al cargar datos. Reintentando...</div>';
+                console.error(error);
+            }
+        }
+
+        // Ejecutar al abrir y luego cada 30 segundos
+        obtenerPrecios();
+        setInterval(obtenerPrecios, 30000);
+    </script>
+</body>
+</html>
+
