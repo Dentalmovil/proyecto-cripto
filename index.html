@@ -3,83 +3,97 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Crypto Portfolio Pro</title>
+    <title>Crypto Monitor Elite</title>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #000; color: white; padding: 15px; margin: 0; }
-        h1 { color: #f2a900; font-size: 1.4rem; text-align: center; }
-        .panel { background: #111; padding: 15px; border-radius: 15px; border: 1px solid #333; margin-bottom: 20px; }
-        input { width: 80%; padding: 12px; border-radius: 8px; border: none; font-size: 1rem; text-align: center; background: #222; color: #fff; }
+        body { font-family: 'Segoe UI', sans-serif; background: #0a0a0a; color: white; padding: 15px; margin: 0; }
+        .header { text-align: center; padding: 10px; }
+        h1 { color: #f2a900; margin: 5px; font-size: 1.5rem; }
         
-        /* Cuadrícula ajustada para muchas monedas */
+        .search-container { margin: 15px 0; text-align: center; }
+        input { 
+            width: 90%; padding: 12px; border-radius: 25px; border: 1px solid #333; 
+            background: #1a1a1a; color: white; font-size: 1rem; outline: none;
+        }
+
         #tablero { 
-            display: grid; 
-            grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); 
-            gap: 10px; 
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(105px, 1fr)); 
+            gap: 12px; 
+        }
+
+        .card { 
+            background: #161616; border-radius: 15px; padding: 12px; 
+            border: 1px solid #222; text-align: center; position: relative;
         }
         
-        .card { background: #161616; border-radius: 12px; padding: 12px; border: 1px solid #333; text-align: center; }
+        .logo { width: 35px; height: 35px; margin-bottom: 8px; border-radius: 50%; }
+        .nombre { font-size: 0.7rem; color: #aaa; text-transform: uppercase; font-weight: bold; }
+        .precio { font-size: 0.95rem; font-weight: bold; margin: 4px 0; }
+        .cambio { font-size: 0.8rem; font-weight: bold; }
+        
         .sube { border-bottom: 3px solid #00ff00; }
         .baja { border-bottom: 3px solid #ff4444; }
-        
-        .moneda-id { color: #888; font-size: 0.65rem; font-weight: bold; text-transform: uppercase; }
-        .precio { font-size: 1rem; font-weight: bold; margin: 5px 0; }
-        .cambio { font-size: 0.75rem; }
-        .calc-res { font-size: 0.7rem; color: #f2a900; margin-top: 8px; border-top: 1px solid #222; padding-top: 5px; }
     </style>
 </head>
 <body>
 
-    <h1>🚀 Mi Mega Panel Crypto</h1>
-
-    <div class="panel">
-        <input type="number" id="monto" placeholder="Inversión en USD" oninput="actualizar()">
+    <div class="header">
+        <h1>💎 Crypto Elite</h1>
     </div>
 
-    <div id="tablero"></div>
+    <div class="search-container">
+        <input type="text" id="buscador" placeholder="🔍 Buscar moneda (ej: pepe)..." oninput="filtrar()">
+    </div>
+
+    <div id="tablero">
+        </div>
 
     <script>
-        // Lista extendida con tus peticiones
-        const monedas = [
-            'bitcoin', 'ethereum', 'solana', 'ripple', 'pepe', 
-            'cardano', 'tron', 'litecoin', 'pax-gold', 
-            'terra-usd', 'usd-coin', 'binancecoin', 'dogecoin'
+        const monedasIds = [
+            'bitcoin', 'ethereum', 'solana', 'ripple', 'pepe', 'cardano', 
+            'tron', 'litecoin', 'pax-gold', 'terra-usd', 'usd-coin', 'binancecoin', 'dogecoin'
         ];
+        
+        let datosCompletos = [];
 
-        async function actualizar() {
+        async function cargarDatos() {
             try {
-                const monto = document.getElementById('monto').value || 0;
-                const ids = monedas.join(',');
-                const res = await axios.get(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`);
-                const datos = res.data;
-                
-                const tablero = document.getElementById('tablero');
-                tablero.innerHTML = '';
-
-                monedas.forEach(id => {
-                    if(!datos[id]) return; // Saltar si hay error en el ID
-
-                    const precio = datos[id].usd;
-                    const cambio = datos[id].usd_24h_change || 0;
-                    const compras = monto > 0 ? (monto / precio).toLocaleString(undefined, {maximumFractionDigits: 4}) : 0;
-
-                    tablero.innerHTML += `
-                        <div class="card ${cambio >= 0 ? 'sube' : 'baja'}">
-                            <div class="moneda-id">${id.replace('-', ' ')}</div>
-                            <div class="precio">$${precio < 1 ? precio.toFixed(6) : precio.toLocaleString()}</div>
-                            <div class="cambio" style="color: ${cambio >= 0 ? '#0f0' : '#f44'}">
-                                ${cambio >= 0 ? '▲' : '▼'} ${cambio.toFixed(2)}%
-                            </div>
-                            <div class="calc-res">Compras: <br>${compras}</div>
-                        </div>
-                    `;
-                });
-            } catch (e) { console.error("Error de conexión"); }
+                // Consultamos precios y también imágenes (logos)
+                const res = await axios.get(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${monedasIds.join(',')}&order=market_cap_desc&sparkline=false`);
+                datosCompletos = res.data;
+                renderizar(datosCompletos);
+            } catch (e) { console.log("Error al cargar"); }
         }
 
-        setInterval(actualizar, 30000);
-        actualizar();
+        function renderizar(lista) {
+            const tablero = document.getElementById('tablero');
+            tablero.innerHTML = '';
+            
+            lista.forEach(coin => {
+                const esPositivo = coin.price_change_percentage_24h >= 0;
+                tablero.innerHTML += `
+                    <div class="card ${esPositivo ? 'sube' : 'baja'}">
+                        <img class="logo" src="${coin.image}" alt="logo">
+                        <div class="nombre">${coin.symbol}</div>
+                        <div class="precio">$${coin.current_price < 1 ? coin.current_price.toFixed(6) : coin.current_price.toLocaleString()}</div>
+                        <div class="cambio" style="color: ${esPositivo ? '#00ff00' : '#ff4444'}">
+                            ${esPositivo ? '▲' : '▼'} ${Math.abs(coin.price_change_percentage_24h).toFixed(2)}%
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function filtrar() {
+            const busqueda = document.getElementById('buscador').value.toLowerCase();
+            const filtrados = datosCompletos.filter(c => 
+                c.name.toLowerCase().includes(busqueda) || c.symbol.toLowerCase().includes(busqueda)
+            );
+            renderizar(filtrados);
+        }
+
+        setInterval(cargarDatos, 30000);
+        cargarDatos();
     </script>
 </body>
 </html>
-
